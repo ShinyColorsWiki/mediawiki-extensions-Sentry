@@ -66,27 +66,27 @@ class SentryHooks {
 			return;
 		}
 
-		$client = new Raven_Client( $wgSentryDsn );
+		$client = \Sentry\ClientBuilder::create( [ 'dsn' => $wgSentryDsn ] )->getClient();
+		$scope = new \Sentry\State\Scope;
 
-		$data = [
-			'tags' => [
-				'host' => wfHostname(),
-				'wiki' => WikiMap::getCurrentWikiId(),
-				'version' => MW_VERSION,
-			],
-		];
+		$scope->setTags([
+			'host' => wfHostname(),
+			'wiki' => WikiMap::getCurrentWikiId(),
+			'version' => MW_VERSION,
+		]);
+
 		/** @phan-suppress-next-line PhanUndeclaredProperty */
 		if ( isset( $e->_mwLogId ) ) {
-			/** @phan-suppress-next-line PhanUndeclaredProperty */
-			$data['event_id'] = $e->_mwLogId;
+			$scope->setExtra( 'event_id', $e->_mwLogId );
 		}
 		if ( $e instanceof DBQueryError ) {
-			$data['culprit'] = $e->fname;
+			$scope->setExtra( 'culprit', $e->fname );
 		}
 
-		$client->captureException( $e, $data );
-		if ( $client->getLastError() !== null ) {
-			wfDebugLog( 'sentry', 'Sentry error: ' . $client->getLastError() );
+		$result = $client->captureException( $e, $scope = $scope );
+		if ( $result === null ) {
+			// sentry-php >= 2.0 doesn't return error by library itself.
+			wfDebugLog( 'sentry', 'Sentry error during catpture exception' );
 		}
 	}
 }
