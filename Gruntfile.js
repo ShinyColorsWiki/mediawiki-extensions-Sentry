@@ -13,7 +13,7 @@ module.exports = function ( grunt ) {
 			},
 			all: [
 				'**/*.{js,json}',
-				'!resources/raven/**',
+				'!resources/sentry/**',
 				'!node_modules/**',
 				'!vendor/**'
 			]

@@ -49,7 +49,7 @@
 					}
 				};
 
-				options.beforeSend = function ( event, hint ) {
+				options.beforeSend = function ( event ) {
 					var eventGateData;
 					// don't flood the server / freeze the client when something generates
 					// an endless stream of errors
@@ -64,8 +64,8 @@
 
 						// use a flatter format, Sentry's tag syntax doesn't play well with Logstash
 						delete eventGateData.tags;
-						$.each( event.tags, function ( tagName, tagValue ) {
-							eventGateData[ 'tag_' + tagName ] = tagValue;
+						event.tags.forEach( function ( name, value ) {
+							eventGateData[ 'tag_' + name ] = value;
 						} );
 
 						// Sentry's culprit field is based on script URL, which is not very useful
@@ -81,7 +81,7 @@
 							if ( frames && frames.length ) {
 								eventGateData.culprit_function =
 									frames[ frames.length - 1 ].function;
-								eventGateData.culprit_stack = $.map( frames, function ( frame ) {
+								eventGateData.culprit_stack = frames.map( function ( frame ) {
 									return frame.function;
 								} )
 									.reverse()

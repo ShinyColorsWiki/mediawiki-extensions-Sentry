@@ -1,44 +1,44 @@
 ( function () {
 	QUnit.module( 'sentry', QUnit.newMwEnvironment() );
 
-	QUnit.test( 'initRaven()', function ( assert ) {
-		window.Raven = window.Raven || undefined; // sinon.js won't stub nonexistent properties
-		this.sandbox.stub( window, 'Raven', {
+	QUnit.test( 'initSentry()', function ( assert ) {
+		window.Sentry = window.Sentry || undefined; // sinon.js won't stub nonexistent properties
+		this.sandbox.stub( window, 'Sentry', {
 			config: this.sandbox.stub().returnsThis(),
 			install: this.sandbox.stub().returnsThis()
 		} );
 
 		this.sandbox.stub( mw.loader, 'using' ).returns( $.Deferred().resolve() );
 
-		return mw.sentry.initRaven().then( function ( raven /* , traceKitOnError */ ) {
-			assert.strictEqual( raven, Raven, 'initRaven() returns Raven as a promise' );
-			assert.true( Raven.config.called, 'Raven is configured' );
-			assert.true( Raven.install.called, 'Raven is installed' );
+		return mw.sentry.initSentry().then( function ( sentry /* , traceKitOnError */ ) {
+			assert.strictEqual( sentry, Sentry, 'initSentry() returns Sentry as a promise' );
+			assert.true( Sentry.config.called, 'Sentry is configured' );
+			assert.true( Sentry.install.called, 'Sentry is installed' );
 
-			Raven.config.reset();
-			Raven.install.reset();
+			Sentry.config.reset();
+			Sentry.install.reset();
 
-			return mw.sentry.initRaven();
-		} ).then( function ( raven /* , traceKitOnError */ ) {
-			assert.strictEqual( raven, Raven, 'initRaven() returns Raven on second invocation' );
-			assert.strictEqual( Raven.config.called, false, 'Raven is not configured twice' );
-			assert.strictEqual( Raven.install.called, false, 'Raven is not installed twice' );
+			return mw.sentry.initSentry();
+		} ).then( function ( sentry /* , traceKitOnError */ ) {
+			assert.strictEqual( sentry, Sentry, 'initSentry() returns Sentry on second invocation' );
+			assert.strictEqual( Sentry.config.called, false, 'Sentry is not configured twice' );
+			assert.strictEqual( Sentry.install.called, false, 'Sentry is not installed twice' );
 		} );
 	} );
 
 	QUnit.test( 'report()', function ( assert ) {
-		var raven = { captureException: this.sandbox.stub() };
+		var sentry = { captureException: this.sandbox.stub() };
 
-		this.sandbox.stub( mw.sentry, 'initRaven' ).returns( $.Deferred().resolve( raven ) );
+		this.sandbox.stub( mw.sentry, 'initSentry' ).returns( $.Deferred().resolve( sentry ) );
 
 		mw.sentry.report( 'some-topic', { exception: 42, source: 'Deep Thought' } );
-		assert.strictEqual( raven.captureException.lastCall.args[ 0 ], 42, 'Exception matches' );
-		assert.strictEqual( raven.captureException.lastCall.args[ 1 ].tags.source, 'Deep Thought', 'Source matches' );
+		assert.strictEqual( sentry.captureException.lastCall.args[ 0 ], 42, 'Exception matches' );
+		assert.strictEqual( sentry.captureException.lastCall.args[ 1 ].tags.source, 'Deep Thought', 'Source matches' );
 
 		mw.sentry.report( 'some-topic', { exception: 42, source: 'Deep Thought', module: 'foo' } );
-		assert.strictEqual( raven.captureException.lastCall.args[ 1 ].tags.module, 'foo', 'Module matches' );
+		assert.strictEqual( sentry.captureException.lastCall.args[ 1 ].tags.module, 'foo', 'Module matches' );
 
 		mw.sentry.report( 'some-topic', { exception: 42, source: 'Deep Thought', context: { foo: 'bar' } } );
-		assert.strictEqual( raven.captureException.lastCall.args[ 1 ].tags.foo, 'bar', 'Custom context matches' );
+		assert.strictEqual( sentry.captureException.lastCall.args[ 1 ].tags.foo, 'bar', 'Custom context matches' );
 	} );
 }() );

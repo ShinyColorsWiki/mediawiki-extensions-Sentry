@@ -9,7 +9,7 @@
 		"browser": true
 	},
 	"globals": {
-		"Raven": false
+		"Sentry": false
 	},
 	"rules": {
 		"no-jquery/no-each-util": "warn",
