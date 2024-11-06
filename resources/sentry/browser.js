@@ -9999,3 +9999,13 @@ var Sentry = (function (exports) {
   
   })({});
   //# sourceMappingURL=bundle.js.map
+
+/**
+ * Monkey Patch for compatibility.
+ * Expose Sentry to the world.
+ */
+;(function(window, Sentry) {
+  'use strict';
+
+  window.Sentry = Sentry;
+})(this, Sentry);
