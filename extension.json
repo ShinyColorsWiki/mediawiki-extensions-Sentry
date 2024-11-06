@@ -1,7 +1,7 @@
 {
 	"name": "Sentry",
-	"version": "0.1",
-	"author": "Gergő Tisza",
+	"version": "0.1+sentry_migration",
+	"author": "Gergő Tisza, MPThLee",
 	"url": "https://www.mediawiki.org/wiki/Extension:Sentry",
 	"descriptionmsg": "sentry-desc",
 	"license-name": "MIT",
@@ -23,9 +23,9 @@
 				"init.js"
 			]
 		},
-		"sentry.raven": {
+		"sentry.browser": {
 			"scripts": [
-				"raven/raven.js"
+				"sentry/browser.js"
 			]
 		}
 	},

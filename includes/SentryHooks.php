@@ -66,27 +66,31 @@ class SentryHooks {
 			return;
 		}
 
-		$client = new Raven_Client( $wgSentryDsn );
-
-		$data = [
-			'tags' => [
-				'host' => wfHostname(),
-				'wiki' => WikiMap::getCurrentWikiId(),
-				'version' => MW_VERSION,
-			],
-		];
-		/** @phan-suppress-next-line PhanUndeclaredProperty */
-		if ( isset( $e->_mwLogId ) ) {
-			/** @phan-suppress-next-line PhanUndeclaredProperty */
-			$data['event_id'] = $e->_mwLogId;
-		}
-		if ( $e instanceof DBQueryError ) {
-			$data['culprit'] = $e->fname;
+		static $sentryInitialized = false;
+		if ( !$sentryInitialized ) {
+			\Sentry\init( [ 'dsn' => $wgSentryDsn ] );
+			$sentryInitialized = true;
 		}
 
-		$client->captureException( $e, $data );
-		if ( $client->getLastError() !== null ) {
-			wfDebugLog( 'sentry', 'Sentry error: ' . $client->getLastError() );
+		try {
+			\Sentry\withScope( function ( \Sentry\State\Scope $scope ) use ( $e ) {
+				$scope->setTags( [
+					'host' => wfHostname(),
+					'wiki' => WikiMap::getCurrentWikiId(),
+					'version' => MW_VERSION,
+				] );
+
+				if ( isset( $e->_mwLogId ) ) {
+					$scope->setExtra( 'event_id', $e->_mwLogId );
+				}
+				if ( $e instanceof DBQueryError ) {
+					$scope->setExtra( 'culprit', $e->fname );
+				}
+
+				\Sentry\captureException( $e );
+			} );
+		} catch ( \Exception $ex ) {
+			wfDebugLog( 'sentry', 'Sentry error: ' . $ex->getMessage() );
 		}
 	}
 }
