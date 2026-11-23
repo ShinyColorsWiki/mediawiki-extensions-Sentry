@@ -1,5 +1,7 @@
 <?php
 
+use MediaWiki\MediaWikiServices;
+use MediaWiki\WikiMap\WikiMap;
 use Wikimedia\Rdbms\DBQueryError;
 
 class SentryHooks {
@@ -26,13 +28,15 @@ class SentryHooks {
 		global $wgSentryEventGateUri, $wgSentryDsn;
 		$out->addModules( [ 'sentry.init' ] );
 		if ( $wgSentryEventGateUri ) {
-			$parts = wfParseUrl( $wgSentryEventGateUri );
+			$parts = MediaWikiServices::getInstance()->getUrlUtils()->parse( $wgSentryEventGateUri );
 			if ( $parts && isset( $parts['host'] ) ) {
 				$out->getCSP()->addDefaultSrc( $parts['host'] );
 			}
 		} elseif ( $wgSentryDsn ) {
 			// We only need to allow this if EventGate is not set.
-			$parts = wfParseUrl( self::getPublicDsnFromFullDsn( $wgSentryDsn ) );
+			$parts = MediaWikiServices::getInstance()->getUrlUtils()->parse(
+				self::getPublicDsnFromFullDsn( $wgSentryDsn )
+			);
 			if ( $parts && isset( $parts['host'] ) ) {
 				$out->getCSP()->addDefaultSrc( $parts['host'] );
 			}
@@ -67,13 +71,13 @@ class SentryHooks {
 		}
 
 		static $sentryInitialized = false;
-		if ( !$sentryInitialized ) {
-			\Sentry\init( [ 'dsn' => $wgSentryDsn ] );
-			$sentryInitialized = true;
-		}
-
 		try {
-			\Sentry\withScope( function ( \Sentry\State\Scope $scope ) use ( $e ) {
+			if ( !$sentryInitialized ) {
+				\Sentry\init( [ 'dsn' => $wgSentryDsn ] );
+				$sentryInitialized = true;
+			}
+
+			\Sentry\withScope( static function ( \Sentry\State\Scope $scope ) use ( $e ) {
 				$scope->setTags( [
 					'host' => wfHostname(),
 					'wiki' => WikiMap::getCurrentWikiId(),
@@ -89,7 +93,7 @@ class SentryHooks {
 
 				\Sentry\captureException( $e );
 			} );
-		} catch ( \Exception $ex ) {
+		} catch ( \Throwable $ex ) {
 			wfDebugLog( 'sentry', 'Sentry error: ' . $ex->getMessage() );
 		}
 	}
