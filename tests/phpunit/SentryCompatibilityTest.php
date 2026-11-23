@@ -41,6 +41,46 @@ class SentryCompatibilityTest extends MediaWikiIntegrationTestCase {
 		];
 	}
 
+	/** @dataProvider provideBrowserDsns */
+	public function testBrowserConfigNeverExposesSecret( $dsn, $expectedDsn ) {
+		$this->setMwGlobals( [
+			'wgSentryDsn' => $dsn,
+			'wgSentryEventGateUri' => null,
+			'wgSentryWhitelist' => [ 'wiki.example.test' ],
+			'wgSentryLogOnError' => true,
+		] );
+		$vars = [];
+		SentryHooks::onResourceLoaderGetConfigVars( $vars );
+		$this->assertSame( [
+			'eventGateUri' => null,
+			'dsn' => $expectedDsn,
+			'whitelist' => [ 'wiki.example.test' ],
+			'logOnError' => true,
+		], $vars['wgSentry'] );
+	}
+
+	public static function provideBrowserDsns() {
+		return [
+			'private DSN' => [ 'https://public:secret@sentry.example.test/1', 'https://public@sentry.example.test/1' ],
+			'public DSN' => [ 'https://public@sentry.example.test/1', 'https://public@sentry.example.test/1' ],
+			'disabled' => [ null, null ],
+		];
+	}
+
+	public function testInvalidEndpointDoesNotModifyCsp() {
+		$this->setMwGlobals( [
+			'wgSentryEventGateUri' => 'not a URL',
+			'wgSentryDsn' => null,
+		] );
+		$csp = $this->createMock( ContentSecurityPolicy::class );
+		$csp->expects( $this->never() )->method( 'addDefaultSrc' );
+		$out = $this->createMock( OutputPage::class );
+		$out->expects( $this->once() )->method( 'addModules' )->with( [ 'sentry.init' ] );
+		$out->method( 'getCSP' )->willReturn( $csp );
+		$skin = null;
+		SentryHooks::onBeforePageDisplay( $out, $skin );
+	}
+
 	public function testInvalidDsnDoesNotReplaceOriginalError() {
 		$this->setMwGlobals( [
 			'wgSentryDsn' => 'not a valid DSN',
